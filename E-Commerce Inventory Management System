@@ -1,0 +1,230 @@
+# Data-Structures-in-C-project-
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h> // For EXIT_SUCCESS and EXIT_FAILURE
+
+#define MAX_PRODUCTS 100
+#define MAX_CUSTOMERS 100
+#define MAX_ORDERS 100
+#define NAME_SIZE 50 // Define a constant for name size
+
+typedef struct {
+    int id;
+    char name[NAME_SIZE];
+    int quantity;
+    float price;
+} Product;
+
+typedef struct {
+    int id;
+    char name[NAME_SIZE];
+} Customer;
+
+typedef struct {
+    int orderId;
+    int customerId;
+    int productId;
+    int quantityOrdered;
+} Order;
+
+Product products[MAX_PRODUCTS];
+Customer customers[MAX_CUSTOMERS];
+Order orders[MAX_ORDERS];
+
+int productCount = 0, customerCount = 0, orderCount = 0;
+
+// Helper function to safely read a string
+int safe_string_input(char *buffer, size_t size) {
+    if (fgets(buffer, size, stdin) != NULL) {
+        buffer[strcspn(buffer, "\n")] = 0; // Remove trailing newline
+        return 0; // Success
+    }
+    return 1; // Failure (e.g., EOF)
+}
+
+// Add Product
+void addProduct() {
+    if (productCount < MAX_PRODUCTS) {
+        Product p;
+        p.id = productCount + 1;
+        printf("Enter product name: ");
+        if (safe_string_input(p.name, sizeof(p.name)) != 0) {
+            printf("Error reading product name.\n");
+            return;
+        }
+        printf("Enter quantity: ");
+        if (scanf("%d", &p.quantity) != 1) {
+            printf("Invalid quantity entered.\n");
+            // Clear the input buffer
+            while (getchar() != '\n');
+            return;
+        }
+        printf("Enter price: ");
+        if (scanf("%f", &p.price) != 1) {
+            printf("Invalid price entered.\n");
+            // Clear the input buffer
+            while (getchar() != '\n');
+            return;
+        }
+        // Clear the newline left by scanf
+        while (getchar() != '\n');
+
+        products[productCount++] = p;
+        printf("Product added successfully!\n");
+    } else {
+        printf("Maximum number of products reached.\n");
+    }
+}
+
+// View Products
+void viewProducts() {
+    printf("\n--- Product List ---\n");
+    if (productCount == 0) {
+        printf("No products available.\n");
+        return;
+    }
+    for (int i = 0; i < productCount; i++) {
+        printf("ID: %d | Name: %s | Qty: %d | Price: %.2f\n",
+               products[i].id, products[i].name,
+               products[i].quantity, products[i].price);
+    }
+}
+
+// Add Customer
+void addCustomer() {
+    if (customerCount < MAX_CUSTOMERS) {
+        Customer c;
+        c.id = customerCount + 1;
+        printf("Enter customer name: ");
+        if (safe_string_input(c.name, sizeof(c.name)) != 0) {
+            printf("Error reading customer name.\n");
+            return;
+        }
+
+        customers[customerCount++] = c;
+        printf("Customer added successfully!\n");
+    } else {
+        printf("Maximum number of customers reached.\n");
+    }
+}
+
+// View Customers
+void viewCustomers() {
+    printf("\n--- Customer List ---\n");
+    if (customerCount == 0) {
+        printf("No customers available.\n");
+        return;
+    }
+    for (int i = 0; i < customerCount; i++) {
+        printf("ID: %d | Name: %s\n", customers[i].id, customers[i].name);
+    }
+}
+
+// Place Order
+void placeOrder() {
+    if (productCount == 0 || customerCount == 0) {
+        printf("Cannot place order. No products or customers available.\n");
+        return;
+    }
+
+    Order o;
+    viewProducts();
+    printf("Enter Product ID to order: ");
+    if (scanf("%d", &o.productId) != 1) {
+        printf("Invalid product ID format.\n");
+        while (getchar() != '\n');
+        return;
+    }
+    while (getchar() != '\n'); // Clear the newline
+
+    if (o.productId <= 0 || o.productId > productCount) {
+        printf("Invalid product ID.\n");
+        return;
+    }
+
+    printf("Enter quantity: ");
+    if (scanf("%d", &o.quantityOrdered) != 1) {
+        printf("Invalid quantity format.\n");
+        while (getchar() != '\n');
+        return;
+    }
+    while (getchar() != '\n'); // Clear the newline
+
+    if (products[o.productId - 1].quantity < o.quantityOrdered) {
+        printf("Not enough stock!\n");
+        return;
+    }
+
+    viewCustomers();
+    printf("Enter Customer ID: ");
+    if (scanf("%d", &o.customerId) != 1) {
+        printf("Invalid customer ID format.\n");
+        while (getchar() != '\n');
+        return;
+    }
+    while (getchar() != '\n'); // Clear the newline
+
+    if (o.customerId <= 0 || o.customerId > customerCount) {
+        printf("Invalid customer ID.\n");
+        return;
+    }
+
+    o.orderId = orderCount + 1;
+    products[o.productId - 1].quantity -= o.quantityOrdered;
+    orders[orderCount++] = o;
+    printf("Order placed successfully!\n");
+}
+
+// View Orders
+void viewOrders() {
+    printf("\n--- Orders List ---\n");
+    if (orderCount == 0) {
+        printf("No orders placed yet.\n");
+        return;
+    }
+    for (int i = 0; i < orderCount; i++) {
+        // Basic check to prevent potential out-of-bounds access if data is corrupted
+        if (orders[i].customerId > 0 && orders[i].customerId <= customerCount &&
+            orders[i].productId > 0 && orders[i].productId <= productCount) {
+            printf("Order ID: %d | Customer: %s | Product: %s | Qty: %d\n",
+                   orders[i].orderId,
+                   customers[orders[i].customerId - 1].name,
+                   products[orders[i].productId - 1].name,
+                   orders[i].quantityOrdered);
+        } else {
+            printf("Error: Invalid customer or product ID in order %d\n", orders[i].orderId);
+        }
+    }
+}
+
+// Menu
+void menu() {
+    int choice;
+    do {
+        printf("\n--- E-Commerce Inventory System ---\n");
+        printf("1. Add Product\n2. View Products\n3. Add Customer\n4. Place Order\n5. View Orders\n6. Exit\n");
+        printf("Enter your choice: ");
+        if (scanf("%d", &choice) != 1) {
+            printf("Invalid input. Please enter a number between 1 and 6.\n");
+            // Clear the input buffer
+            while (getchar() != '\n');
+            continue;
+        }
+        while (getchar() != '\n'); // Clear the newline
+
+        switch (choice) {
+            case 1: addProduct(); break;
+            case 2: viewProducts(); break;
+            case 3: addCustomer(); break;
+            case 4: placeOrder(); break;
+            case 5: viewOrders(); break;
+            case 6: printf("Exiting...\n"); break;
+            default: printf("Invalid choice. Please enter a number between 1 and 6.\n");
+        }
+    } while (choice != 6);
+}
+
+int main() {
+    menu();
+    return EXIT_SUCCESS;
+}
